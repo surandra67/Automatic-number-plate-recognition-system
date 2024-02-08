@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Webcam Capture</title>
+    <style>
+      h1{text-align: center;}
+      #webcam{
+        display: block;
+        margin: auto;
+      }
+      </style>
+  </head>
+  <body>
+    <h1 id  ="h1f"> CCTV Footage</h1>
+    <video id="webcam" autoplay></video>
+    <script>
+      
+      const webcam = document.getElementById("webcam");
+      const writer = document.getElementById("output");
+      const toggle = document.getElementById("switch");
+      const serverUrl = "http://localhost:8000/push"; // Replace with your actual URL
+      function captureImage() {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        const width = webcam.videoWidth;
+        const height = webcam.videoHeight;
+
+        canvas.width = width;
+        canvas.height = height;
+        context.drawImage(webcam, 0, 0, width, height);
+
+        const imageData = canvas.toDataURL("image/jpeg"); // Change format if needed
+        return imageData.replace(/^data:image\/\w+;base64,/, ""); // Get base64 data
+      }
+
+      function sendImageToServer(imageData) {
+        fetch(serverUrl, {
+          method: "POST",
+          body: JSON.stringify({ base64: imageData }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            // writer.innerText = data.output;
+            if (data.output) alert(`Authorized : ${data.output}`);
+          })
+          .catch((error) => console.error("Error:", error));
+      }
+
+      function captureAndSendLoop() {
+        const imageData = captureImage();
+        sendImageToServer(imageData);
+        setTimeout(captureAndSendLoop, 5000);
+      }
+
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then((stream) => {
+          webcam.srcObject = stream;
+          captureAndSendLoop();
+        })
+        .catch((error) => console.error("Error accessing webcam:", error));
+    </script>
+  </body>
+</html>
